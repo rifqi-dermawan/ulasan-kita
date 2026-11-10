@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-[#F9FBFA] text-[#2C3E50] font-sans antialiased;
+    }
+}
+
+/* Custom styling tokens for UlasanKita */
+.border-mint-medium {
+    border-color: #B2DFDB;
+}
+
+.bg-mint-light {
+    background-color: #E8F5F1;
+}
+
+.bg-mint-primary {
+    background-color: #26A69A;
+}
+
+.text-mint-primary {
+    color: #26A69A;
+}
+
+.bg-mint-dark {
+    background-color: #1E6B65;
+}
+
+.text-mint-dark {
+    color: #1E6B65;
+}
