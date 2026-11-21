@@ -11,6 +11,7 @@ class Review extends Model
     protected $casts = [
         'reviewed_at' => 'datetime',
         'is_edited_by_user' => 'boolean',
+        'rating' => 'integer',
     ];
 
     protected $appends = [

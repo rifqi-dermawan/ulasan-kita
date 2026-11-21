@@ -41,6 +41,7 @@ class ReviewController extends Controller
         $validated = $request->validate([
             'content' => ['required', 'string', 'min:5', 'max:1000'],
             'menu_item' => ['nullable', 'string', 'max:100'],
+            'rating' => ['nullable', 'integer', 'min:1', 'max:5'],
             'receipt_number' => ['nullable', 'string', 'max:50'],
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
             'device_id' => ['nullable', 'string', 'max:100'],
@@ -48,7 +49,7 @@ class ReviewController extends Controller
             'content.required' => 'Mohon tuliskan ulasan Anda.',
             'content.min' => 'Ulasan minimal 5 karakter agar bermakna.',
             'content.max' => 'Ulasan maksimal 1000 karakter.',
-            'receipt_number.max' => 'Nomor struk / ID pesanan maksimal 50 karakter.',
+            'rating.between' => 'Rating bintang harus bernilai antara 1 hingga 5.',
             'photo.image' => 'File bukti harus berupa gambar (JPG, PNG, WebP).',
             'photo.max' => 'Ukuran foto maksimal 5 MB.',
         ]);
@@ -57,8 +58,9 @@ class ReviewController extends Controller
         $ipAddress = $request->ip();
         $userAgent = $request->userAgent();
         $receiptNumber = ! empty($validated['receipt_number']) ? trim($validated['receipt_number']) : null;
+        $rating = ! empty($validated['rating']) ? (int) $validated['rating'] : null;
 
-        // 1. Validasi Duplikasi Nomor Struk / ID Pesanan (1 struk hanya untuk 1 ulasan di kantin ini)
+        // 1. Validasi Duplikasi Nomor Struk (jika diisi)
         if ($receiptNumber) {
             $duplicateReceipt = Review::where('user_id', $user->id)
                 ->where('receipt_number', $receiptNumber)
@@ -71,7 +73,7 @@ class ReviewController extends Controller
             }
         }
 
-        // 2. Batasi Per Agen / Device (Cooldown 15 menit agar tidak bisa spam penilaian berulang-ulang)
+        // 2. Batasi Per Perangkat (Cooldown 15 detik untuk mencegah double-click tanpa memblokir ulasan menu lainnya)
         $recentReview = Review::where('user_id', $user->id)
             ->where(function ($q) use ($deviceId, $ipAddress) {
                 if (! empty($deviceId)) {
@@ -81,12 +83,12 @@ class ReviewController extends Controller
                     $q->orWhere('ip_address', $ipAddress);
                 }
             })
-            ->where('created_at', '>=', now('Asia/Jakarta')->subMinutes(15))
+            ->where('created_at', '>=', now('Asia/Jakarta')->subSeconds(15))
             ->first();
 
         if ($recentReview) {
             return redirect()->back()
-                ->withErrors(['device_id' => 'Perangkat Anda baru saja mengirimkan ulasan untuk kantin ini. Mohon tunggu beberapa saat sebelum mengirim ulasan baru.'])
+                ->withErrors(['device_id' => 'Ulasan Anda baru saja dikirim. Mohon tunggu beberapa detik sebelum mengirim ulasan untuk menu berikutnya.'])
                 ->withInput();
         }
 
@@ -98,12 +100,23 @@ class ReviewController extends Controller
 
         // 4. Memanggil AI untuk deteksi sentimen ulasan
         $sentiment = $gemini->analyzeSentiment($validated['content']);
+
+        // Jika pelanggan memilih bintang 1-2, pastikan sentimen mencerminkan keluhan/negatif
+        if ($rating !== null) {
+            if ($rating <= 2) {
+                $sentiment = 'Negatif';
+            } elseif ($rating >= 4 && $sentiment !== 'Negatif') {
+                $sentiment = 'Positif';
+            }
+        }
+
         $now = now('Asia/Jakarta');
 
         Review::create([
             'user_id' => $user->id,
             'content' => $validated['content'],
             'menu_item' => $validated['menu_item'] ?? null,
+            'rating' => $rating,
             'receipt_number' => $receiptNumber,
             'photo_path' => $photoPath,
             'device_id' => $deviceId,
@@ -117,7 +130,7 @@ class ReviewController extends Controller
             'is_edited_by_user' => false,
         ]);
 
-        return redirect()->back()->with('success', 'Terima kasih banyak! Ulasan Anda berhasil dikirim dan diverifikasi.');
+        return redirect()->back()->with('success', 'Terima kasih banyak! Ulasan Anda berhasil dikirim.');
     }
 
     /**
