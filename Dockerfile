@@ -1,8 +1,9 @@
 # Stage 1: Build aset Vite / Tailwind
 FROM node:20-alpine AS assets
 WORKDIR /app
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 COPY package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+RUN npm install --no-audit --no-fund
 COPY . .
 RUN npm run build
 
