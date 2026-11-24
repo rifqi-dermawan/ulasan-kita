@@ -7,11 +7,26 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:8080"
-    env_file:
-      - stack.env
     environment:
+      APP_NAME: ${APP_NAME:-UlasanKita}
       APP_ENV: production
+      APP_KEY: ${APP_KEY}
       APP_DEBUG: "false"
+      APP_URL: ${APP_URL:-https://ulasan.alfie.my.id}
+      ASSET_URL: ${ASSET_URL:-https://ulasan.alfie.my.id}
+      TRUSTED_PROXIES: "*"
+      DB_CONNECTION: ${DB_CONNECTION:-mysql}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE:-ulasan_kita}
+      DB_USERNAME: ${DB_USERNAME:-ulasan_user}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SESSION_DRIVER: ${SESSION_DRIVER:-database}
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-sync}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
       PHP_UPLOAD_MAX_FILE_SIZE: "20M"
       PHP_POST_MAX_SIZE: "20M"
       AUTORUN_ENABLED: "true"
@@ -28,8 +43,8 @@ services:
     container_name: ulasan-db
     restart: unless-stopped
     environment:
-      MARIADB_DATABASE: ${DB_DATABASE}
-      MARIADB_USER: ${DB_USERNAME}
+      MARIADB_DATABASE: ${DB_DATABASE:-ulasan_kita}
+      MARIADB_USER: ${DB_USERNAME:-ulasan_user}
       MARIADB_PASSWORD: ${DB_PASSWORD}
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
